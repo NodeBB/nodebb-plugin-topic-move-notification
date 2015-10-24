@@ -1,0 +1,6 @@
+{
+    "library": "./index.js",
+    "hooks": [
+        { "hook": "action:topic.move", "method": "onTopicMove"}
+    ]
+}
