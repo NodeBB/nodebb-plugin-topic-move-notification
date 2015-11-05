@@ -68,7 +68,7 @@ function sendNotification(uid, tid) {
 }
 
 function isHiddenToVisible(fromCid, toCid, callback) {
-	var groupName = 'registered-users';
+	var groupName = 'Platinum Members';
 	async.parallel({
 		from: async.apply(privileges.categories.groupPrivileges, fromCid, groupName),
 		to: async.apply(privileges.categories.groupPrivileges, toCid, groupName)
