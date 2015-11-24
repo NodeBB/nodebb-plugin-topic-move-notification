@@ -58,7 +58,7 @@ function sendNotification(uid, tid) {
 		},
 		function (userData, next) {
 			postData.user = userData;
-			user.notifications.sendTopicNotificationToFollowers(uid, topicData, postData);
+			user.notifications.sendTopicNotificationToFollowers(postData.uid, topicData, postData);
 		}
 	], function(err) {
 		if (err) {
