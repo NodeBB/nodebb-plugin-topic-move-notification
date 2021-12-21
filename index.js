@@ -1,84 +1,52 @@
 
 'use strict';
 
-var async = require.main.require('async');
-var winston = require.main.require('winston');
+const user = require.main.require('./src/user');
+const topics = require.main.require('./src/topics');
+const posts = require.main.require('./src/posts');
+const privileges = require.main.require('./src/privileges');
 
-var user = require.main.require('./src/user');
-var topics = require.main.require('./src/topics');
-var posts = require.main.require('./src/posts');
-var privileges = require.main.require('./src/privileges');
-var db = require.main.require('./src/database');
+const plugin = module.exports;
 
-var plugin = {};
-
-plugin.onTopicMove = function(data) {
+plugin.onTopicMove = async function (data) {
 	if (!data) {
 		return;
 	}
-
-	async.waterfall([
-		function (next) {
-			user.isAdministrator(data.uid, next);
-		},
-		function (isAdmin, next) {
-			if (!isAdmin) {
-				return;
-			}
-
-			isHiddenToVisible(data.fromCid, data.toCid, next);
-		},
-		function (isHiddenToVisible, next) {
-			if (isHiddenToVisible) {
-				sendNotification(data.uid, data.tid);
-			}
-			next();
-		}
-	], function(err) {
-		if (err) {
-			winston.error(err);
-		}
-	});
+	const isAdmin = await user.isAdministrator(data.uid);
+	if (!isAdmin) {
+		return;
+	}
+	const hiddenToVisible = await isHiddenToVisible(data.fromCid, data.toCid);
+	if (hiddenToVisible) {
+		await sendNotification(data.tid);
+	}
 };
 
-function sendNotification(uid, tid) {
-	var topicData;
-	var postData;
-	async.waterfall([
-		function (next) {
-			topics.getTopicData(tid, next);
-		},
-		function (_topicData, next) {
-			topicData = _topicData;
-			posts.getPostData(_topicData.mainPid, next);
-		},
-		function (_postData, next) {
-			postData = _postData;
-			user.getUserFields(_postData.uid, ['username'], next);
-		},
-		function (userData, next) {
-			postData.user = userData;
-			user.notifications.sendTopicNotificationToFollowers(postData.uid, topicData, postData);
-		}
-	], function(err) {
-		if (err) {
-			winston.error(err);
-		}
-	});
+async function sendNotification(tid) {
+	const topicData = await topics.getTopicData(tid);
+	if (!topicData) {
+		return;
+	}
+	const postData = await posts.getPostData(topicData.mainPid);
+	if (!postData) {
+		return;
+	}
+	postData.user = await user.getUserFields(postData.uid, ['username']);
+	await user.notifications.sendTopicNotificationToFollowers(postData.uid, topicData, postData);
 }
 
-function isHiddenToVisible(fromCid, toCid, callback) {
-	var groupName = 'Platinum Members';
-	async.parallel({
-		from: async.apply(privileges.categories.groupPrivileges, fromCid, groupName),
-		to: async.apply(privileges.categories.groupPrivileges, toCid, groupName)
-	}, function(err, results) {
-		if (err) {
-			return callback(err);
-		}
-
-		callback(null, !results.from['groups:read'] && results.to['groups:read']);
-	});
+async function isHiddenToVisible(fromCid, toCid) {
+	const [group1, group2] = await Promise.all([
+		checkGroup('Platinum Members', fromCid, toCid),
+		checkGroup('Diamond Members', fromCid, toCid),
+	]);
+	return group1 || group2;
 }
 
-module.exports = plugin;
+async function checkGroup(groupName, fromCid, toCid) {
+	const [from, to] = await Promise.all([
+		privileges.categories.groupPrivileges(fromCid, groupName),
+		privileges.categories.groupPrivileges(toCid, groupName),
+	]);
+	return !from['groups:read'] && to['groups:read'];
+}

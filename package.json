@@ -17,6 +17,11 @@
   "author": "Baris Usakli <baris@nodebb.org>",
   "license": "MIT",
   "dependencies": {},
+  "devDependencies": {
+    "eslint": "8.5.0",
+    "eslint-config-nodebb": "0.1.1",
+    "eslint-plugin-import": "2.25.3"
+  },
   "nbbpm": {
     "compatibility": "^0.7.0 || ^0.8.0 || ^0.9.0"
   }
