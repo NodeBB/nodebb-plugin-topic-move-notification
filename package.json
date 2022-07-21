@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-topic-move-notification",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Sends a notification to a users followers when they move a topic from a hidden category to a visible category.",
   "main": "index.js",
   "repository": {
